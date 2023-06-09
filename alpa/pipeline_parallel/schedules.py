@@ -1,13 +1,13 @@
 """Generate pipeline schedules."""
 import itertools
 import logging
-from abc import abstractmethod, ABCMeta
+from abc import ABCMeta, abstractmethod
 from typing import List, Tuple
 
 import numpy as np
 
 from alpa.pipeline_parallel.computation import PipelineComputation
-from alpa.util import cached_property, OrderedSet
+from alpa.util import OrderedSet, cached_property
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

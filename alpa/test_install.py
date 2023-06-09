@@ -2,8 +2,8 @@
 import os
 import unittest
 
-from alpa import (init, parallelize, ShardParallel, PipeshardParallel,
-                  AutoLayerOption, prefetch)
+from alpa import (AutoLayerOption, PipeshardParallel, ShardParallel, init,
+                  parallelize, prefetch)
 from alpa.device_mesh import get_global_cluster
 from alpa.testing import assert_allclose, get_mlp_train_state_and_step
 

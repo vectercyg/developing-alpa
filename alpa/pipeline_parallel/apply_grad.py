@@ -1,19 +1,19 @@
 """Transformations and utilities to process gradient accumulation and
 apply_gradient."""
 import logging
-from typing import Sequence, Dict, Tuple
+from typing import Dict, Sequence, Tuple
 
-from jax._src.util import safe_map
-from jax.core import (Primitive, Var, Jaxpr, ClosedJaxpr, DropVar, Literal,
-                      get_aval, raise_to_shaped, JaxprEqn)
-from jax.interpreters import xla
-from jax.lax import add_p, div_p, and_p, or_p
-from jaxlib import xla_client as xc
 import numpy as np
+from jax._src.util import safe_map
+from jax.core import (ClosedJaxpr, DropVar, Jaxpr, JaxprEqn, Literal,
+                      Primitive, Var, get_aval, raise_to_shaped)
+from jax.interpreters import xla
+from jax.lax import add_p, and_p, div_p, or_p
+from jaxlib import xla_client as xc
 
 from alpa.pipeline_parallel.computation import JaxPipelineComputation
-from alpa.pipeline_parallel.primitive_def import (pipeline_p,
-                                                  mark_pipeline_jaxpreqn)
+from alpa.pipeline_parallel.primitive_def import (mark_pipeline_jaxpreqn,
+                                                  pipeline_p)
 from alpa.util import (OrderedSet, clone_jaxpr, clone_jaxpr_eqn,
                        get_var_mapping, mesh_ids_hash, new_jaxpr_eqn,
                        slices_to_jaxpr)

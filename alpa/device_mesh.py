@@ -17,46 +17,47 @@ LogicalDeviceMesh. They are only used during compilation time. They are used to
 manipulate meshes flexibly without allocating real resources during compilation
 time.
 """
-from abc import ABC, abstractmethod
 import asyncio
-from collections import defaultdict, namedtuple
-from collections.abc import Iterable
 import logging
-from operator import attrgetter
 import os
 import pickle
 import shutil
 import threading
 import time
-from typing import Any, List, Union, Sequence, Tuple, Optional
+from abc import ABC, abstractmethod
+from collections import defaultdict, namedtuple
+from collections.abc import Iterable
+from operator import attrgetter
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
-from jax import core, xla, device_put
+import jax.numpy as jnp
+import numpy as np
+import ray
+from jax import core, device_put, xla
 from jax._src.api import ShapeDtypeStruct
-from jax._src.lib import xla_bridge as xb, xla_extension as xe
+from jax._src.lib import xla_bridge as xb
+from jax._src.lib import xla_extension as xe
 from jax._src.tree_util import tree_leaves
 from jax.abstract_arrays import array_types
 from jax.core import ShapedArray
 from jax.interpreters import pxla
-from jax.interpreters.pxla import (ShardingSpec, _hashable_index,
-                                   ShardedDeviceArray, Index)
+from jax.interpreters.pxla import (Index, ShardedDeviceArray, ShardingSpec,
+                                   _hashable_index)
 from jax.lib import xla_client
-import jax.numpy as jnp
-import numpy as np
-import ray
 from ray.util.placement_group import remove_placement_group
 
-from alpa import mesh_profiling
 import alpa.collective as col
+from alpa import mesh_profiling
 from alpa.global_env import global_config
 from alpa.monkey_patch import set_override_backend
-from alpa.shard_parallel.auto_sharding import (LogicalDeviceMesh)
 from alpa.parallel_plan import PlacementSpec
+from alpa.shard_parallel.auto_sharding import LogicalDeviceMesh
 from alpa.timer import timers, tracer
-from alpa.util import (benchmark_func, list_gpu_info, OrderedSet,
-                       update_jax_platform, is_ray_node_resource,
-                       try_import_ray_worker, create_placement_group,
-                       get_bundle_idx, retrieve_placement_group, get_bundle2ip,
-                       check_server_port)
+from alpa.util import (OrderedSet, benchmark_func, check_server_port,
+                       create_placement_group, get_bundle2ip, get_bundle_idx,
+                       is_ray_node_resource, list_gpu_info,
+                       retrieve_placement_group, try_import_ray_worker,
+                       update_jax_platform)
 
 ray_worker = try_import_ray_worker()
 
@@ -1994,7 +1995,8 @@ class PhysicalDeviceMeshGroup:
                              instantiate=True):
         """Establish NCCL group between two meshes."""
         # pylint: disable=import-outside-toplevel
-        from alpa.pipeline_parallel.cross_mesh_resharding import CollectiveGroup
+        from alpa.pipeline_parallel.cross_mesh_resharding import \
+            CollectiveGroup
 
         assert src_mesh_id < dst_mesh_id
         if self.collective_groups[src_mesh_id][dst_mesh_id] is not None:

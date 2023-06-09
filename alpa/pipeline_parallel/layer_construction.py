@@ -1,28 +1,27 @@
 """Group small ops into layers and rematerialize at layer boundary."""
+import logging
 from abc import ABC, abstractmethod
 from functools import partial, wraps
-import logging
 from typing import Callable, Iterable, Optional, Sequence, Union
 
 import numpy as np
 from jax import lax
-from jax.tree_util import tree_flatten, tree_unflatten
-from jax._src.api import _check_callable, make_jaxpr
 from jax._src.ad_checkpoint import remat_p
-from jax.core import (Var, Jaxpr, ClosedJaxpr, DropVar, Literal, jaxpr_as_fun,
-                      gensym)
+from jax._src.api import _check_callable, make_jaxpr
+from jax.core import (ClosedJaxpr, DropVar, Jaxpr, Literal, Var, gensym,
+                      jaxpr_as_fun)
+from jax.tree_util import tree_flatten, tree_unflatten
 
 from alpa.global_env import global_config
 from alpa.parallel_plan import PlacementSpec
-from alpa.pipeline_parallel.layer_stats import (global_invar_size,
-                                                is_nontrivial, eqn_flops,
-                                                heavy_count,
+from alpa.pipeline_parallel.layer_stats import (eqn_flops, global_invar_size,
+                                                heavy_count, is_nontrivial,
                                                 log_layer_slicing_stats)
-from alpa.pipeline_parallel.primitive_def import (pipeline_p,
-                                                  mark_pipeline_jaxpreqn)
-from alpa.util import (clone_jaxpr, clone_jaxpr_eqn, slices_to_jaxpr,
-                       OrderedSet, get_var_mapping, maybe_numba_jit,
-                       new_jaxpr_eqn)
+from alpa.pipeline_parallel.primitive_def import (mark_pipeline_jaxpreqn,
+                                                  pipeline_p)
+from alpa.util import (OrderedSet, clone_jaxpr, clone_jaxpr_eqn,
+                       get_var_mapping, maybe_numba_jit, new_jaxpr_eqn,
+                       slices_to_jaxpr)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

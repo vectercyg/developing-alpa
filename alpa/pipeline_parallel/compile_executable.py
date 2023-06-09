@@ -2,36 +2,36 @@
 import dataclasses
 import logging
 import time
-from typing import Callable, Sequence, Optional
+from typing import Callable, Optional, Sequence
 
 from jax import linear_util as lu
 from jax._src.lib import xla_client as xc
-from jax.core import gensym, AbstractValue, ClosedJaxpr
+from jax.core import AbstractValue, ClosedJaxpr, gensym
 from jax.interpreters import pxla
 from jax.tree_util import PyTreeDef
 
 from alpa.device_mesh import VirtualPhysicalMesh
 from alpa.global_env import global_config
-from alpa.pipeline_parallel.pipeshard_executable import PipeshardDriverExecutable
-from alpa.pipeline_parallel.runtime_emitter import (
-    OverlapFriendlyPipelineInstEmitter, PipelineInstEmitter)
-from alpa.pipeline_parallel.schedules import (GpipeSchedule,
-                                              OverlapFriendlyPipeDreamSchedule,
-                                              PipeDreamFlush, InferenceSchedule)
-from alpa.pipeline_parallel.computation import (
-    create_donation_mapping, generate_computations_from_modules,
-    generate_sharded_xla_computations,
-    generate_sharded_xla_computations_arguments, get_donatable_intermediate,
-    mark_missing_vars_in_backward_computation_pipeline_marks, pipeline_dce,
-    slice_closed_jaxpr_by_full_pipeline_marks, split_donate_invars,
-    XlaShardedPipelineComputation)
 from alpa.pipeline_parallel.apply_grad import (
     apply_grad_get_mean, compute_grad_to_accumulate_grad,
     process_apply_gradient, split_compute_grad_and_apply_grad)
+from alpa.pipeline_parallel.computation import (
+    XlaShardedPipelineComputation, create_donation_mapping,
+    generate_computations_from_modules, generate_sharded_xla_computations,
+    generate_sharded_xla_computations_arguments, get_donatable_intermediate,
+    mark_missing_vars_in_backward_computation_pipeline_marks, pipeline_dce,
+    slice_closed_jaxpr_by_full_pipeline_marks, split_donate_invars)
 from alpa.pipeline_parallel.layer_construction import LayerOption
-from alpa.pipeline_parallel.schedules import gen_dependency_with_stages
+from alpa.pipeline_parallel.pipeshard_executable import \
+    PipeshardDriverExecutable
+from alpa.pipeline_parallel.runtime_emitter import (
+    OverlapFriendlyPipelineInstEmitter, PipelineInstEmitter)
+from alpa.pipeline_parallel.schedules import (GpipeSchedule, InferenceSchedule,
+                                              OverlapFriendlyPipeDreamSchedule,
+                                              PipeDreamFlush,
+                                              gen_dependency_with_stages)
 from alpa.pipeline_parallel.stage_construction import (
-    cluster_layers_and_slice_mesh, StageOption)
+    StageOption, cluster_layers_and_slice_mesh)
 from alpa.pipeline_parallel.stage_profiling import CompileWorkerPool
 from alpa.shard_parallel.auto_sharding import (AutoShardingOption,
                                                hlo_sharding_to_sharding_spec)
@@ -39,8 +39,8 @@ from alpa.shard_parallel.manual_sharding import (ManualShardingOption,
                                                  ParsedManualShardingOption,
                                                  get_flatten_axis_resources,
                                                  parsed_spec_to_opsharding)
-from alpa.util import (get_var_mapping, trace_jaxpr_with_micro_batch,
-                       OrderedSet, GradFuncTransformContext)
+from alpa.util import (GradFuncTransformContext, OrderedSet, get_var_mapping,
+                       trace_jaxpr_with_micro_batch)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -313,6 +313,15 @@ def split_and_process_layers(closed_jaxpr, full_batch_closed_jaxpr,
      microbatch_bound) = split_compute_grad_and_apply_grad(
          closed_jaxpr, gensym_func, num_microbatch, inference_mode)
     global_outvars = closed_jaxpr.jaxpr.outvars
+
+    # # 崔勇敢临时修改 开始
+    # import cyg_test.display.jaxpr_display as jaxpr_display
+    # file_path="cyg_test/display/compute_grad_jaxpr.pkl"
+    # jaxpr_display.SerializeComputeGradJaxpr(compute_grad_jaxpr,file_path)
+    # forward_closed_jaxpr,backward_closed_jaxpr=jaxpr_display.SliceComputeGradJaxprToForwardAndBackward(compute_grad_jaxpr,2)
+    # graph=jaxpr_display.JaxprToDot(backward_closed_jaxpr.jaxpr)
+    # graph.write("cyg_test/backward_closed_jaxpr.png",format="png")
+    # # 崔勇敢临时修改 结束
 
     # Transform compute_grad to accumulate_grad
     # FIXME(yonghao): use apply grad jaxpr returned by this function
